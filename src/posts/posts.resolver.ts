@@ -1,7 +1,6 @@
 import { Authenticate, CurrentUser } from '@nestjs/authentication';
-import { Args, Context, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import type { Loaders } from '../graphql/loaders.js';
-import { perItem } from '../graphql/query-cost.js';
+import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { Loaders } from '../graphql/loaders.js';
 import { User } from '../users/user.model.js';
 import { Comment } from './comment.model.js';
 import { Post, PostConnection } from './post.model.js';
@@ -12,9 +11,12 @@ import { PostsService } from './posts.service.js';
 @Authenticate({ optional: true })
 @Resolver(() => Post)
 export class PostsResolver {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly loaders: Loaders,
+  ) {}
 
-  @Query(() => PostConnection, { complexity: perItem })
+  @Query(() => PostConnection)
   posts(@Args() args: PostsArgs) {
     return this.postsService.list(args);
   }
@@ -25,13 +27,13 @@ export class PostsResolver {
   }
 
   @ResolveField(() => User)
-  author(@Parent() post: Post, @Context('loaders') loaders: Loaders) {
-    return loaders.user(post.authorId);
+  author(@Parent() post: Post) {
+    return this.loaders.user(post.authorId);
   }
 
-  @ResolveField(() => [Comment], { complexity: perItem })
-  comments(@Parent() post: Post, @Args() { first }: FirstArgs, @Context('loaders') loaders: Loaders) {
-    return loaders.comments(post.id, first);
+  @ResolveField(() => [Comment])
+  comments(@Parent() post: Post, @Args() { first }: FirstArgs) {
+    return this.loaders.comments(post.id, first);
   }
 
   @Authenticate({ optional: false })

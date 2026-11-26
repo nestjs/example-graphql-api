@@ -13,7 +13,6 @@ import { accountEmail } from './auth/gql-throttler.guard.js';
 import { envSchema, type Env } from './config.js';
 import { badUserInput, GraphQLErrorFilter } from './graphql/errors.js';
 import { GraphqlConfig } from './graphql/graphql.config.js';
-import { QueryCostPlugin } from './graphql/query-cost.js';
 import { PostsModule } from './posts/posts.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -71,7 +70,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   providers: [
     { provide: APP_PIPE, useValue: new ValidationPipe({ transform: true, exceptionFactory: badUserInput }) },
     { provide: APP_FILTER, useClass: GraphQLErrorFilter },
-    QueryCostPlugin,
   ],
 })
 export class AppModule {}

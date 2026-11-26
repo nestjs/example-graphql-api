@@ -1,7 +1,6 @@
-import { PostsService } from '../src/posts/posts.service.js';
 import { createPost, createTestApp, gql, signUp, type GqlResult, type TestApp } from './test-app.js';
 
-describe.skipIf(!process.env.TEST_DATABASE_URL)('Errors, limits and tokens (e2e)', () => {
+describe.skipIf(!process.env.TEST_DATABASE_URL)('Errors and tokens (e2e)', () => {
   let t: TestApp;
   let ada: string;
   let bob: string;
@@ -50,15 +49,6 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('Errors, limits and tokens (e2e)
     ]) {
       expect((await gql(t.app, query)).errors![0]).toMatchObject({ message, extensions: { code: 'BAD_USER_INPUT' } });
     }
-  });
-
-  it('refuses an over-limit query before any resolver runs', async () => {
-    const list = vi.spyOn(t.app.get(PostsService), 'list');
-    const queriesBefore = t.sqlCount();
-    const result = await gql(t.app, '{ posts(first: 50) { edges { node { comments(first: 50) { author { posts(first: 50) { id } } } } } } }');
-    expect(result).toEqual({ errors: [expect.objectContaining({ extensions: expect.objectContaining({ code: 'QUERY_TOO_EXPENSIVE' }) })] });
-    expect(list).not.toHaveBeenCalled();
-    expect(t.sqlCount()).toBe(queriesBefore);
   });
 
   it('rotates refresh tokens, and refuses a reused one', async () => {

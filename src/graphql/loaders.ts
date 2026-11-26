@@ -1,3 +1,5 @@
+import { Injectable, Scope } from '@nestjs/common';
+import { InjectDrizzle } from '@nestjs/drizzle';
 import DataLoader from 'dataloader';
 import { and, getColumns, inArray, lte, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -8,13 +10,14 @@ import type { User } from '../users/user.model.js';
 const { passwordHash: _, ...userColumns } = getColumns(users);
 
 /**
- * Batches the nested fields of one operation: `author` for 50 posts is one query, not 50.
- * A new instance for every operation, so no batch mixes two requests or two users.
+ * Batches the nested fields of one request: `author` for 50 posts is one query, not 50.
+ * Request-scoped: a new instance for every request, so no batch mixes two requests or two users.
  */
+@Injectable({ scope: Scope.REQUEST })
 export class Loaders {
   private readonly loaders = new Map<string, DataLoader<string, unknown>>();
 
-  constructor(private readonly db: NodePgDatabase) {}
+  constructor(@InjectDrizzle() private readonly db: NodePgDatabase) {}
 
   user(id: string): Promise<User | undefined> {
     return this.load('users', id, async (ids) => {
@@ -60,8 +63,8 @@ export class Loaders {
   private load<V>(kind: string, key: string, batch: (keys: string[]) => Promise<V[]>): Promise<V> {
     let loader = this.loaders.get(kind) as DataLoader<string, V> | undefined;
     if (!loader) {
-      // Batching without a cache: a subscription keeps its context, and these loaders, for
-      // as long as it runs, and every event must see the rows as they are now.
+      // Batching without a cache: a subscription is one request, which keeps these loaders
+      // for as long as it runs, and every event must see the rows as they are now.
       loader = new DataLoader<string, V>((keys) => batch([...keys]), { cache: false });
       this.loaders.set(kind, loader);
     }

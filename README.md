@@ -12,7 +12,6 @@ A GraphQL API for a blog: users write posts, keep them as drafts until they publ
 - `signUp`, `signIn` and `refreshToken` mutations with `@nestjs/authentication`: access tokens that live 15 minutes, and refresh tokens that rotate on every use. Sign-up and sign-in are rate-limited.
 - A draft is visible to its author only, through every query, field and subscription; an email address to its owner only.
 - Errors carry a code a client can act on: `UNAUTHENTICATED`, `FORBIDDEN`, `BAD_USER_INPUT`, `NOT_FOUND`, `QUERY_TOO_EXPENSIVE`, `TOO_MANY_REQUESTS`. In production, unexpected errors are masked.
-- A query whose cost is over the limit is refused before any resolver runs.
 - `commentAdded` pushes new comments to signed-in subscribers over `graphql-ws`.
 - NestJS Observe is wired in, and sends nothing until it has a key pair.
 
@@ -63,10 +62,10 @@ All operations go to `POST /graphql`; `commentAdded` goes over `graphql-ws` on `
 | Path | What it holds |
 | --- | --- |
 | `src/main.ts` | bootstrap on the Node adapter: JSON logs in production, security headers, CORS, shutdown hooks |
-| `src/app.module.ts` | NestJS Observe, config, database, authentication, GraphQL, rate limits, the validation pipe, error filter and query cost plugin |
+| `src/app.module.ts` | NestJS Observe, config, database, authentication, GraphQL, rate limits, the validation pipe, error filter |
 | `src/config.ts` | the environment, as a Zod schema checked at startup |
 | `src/database/` | the Drizzle tables (`schema.ts`) and the development seed (`seed.ts`) |
-| `src/graphql/` | the GraphQL module's options and the WebSocket checks (`graphql.config.ts`), the DataLoaders, the query cost limit, and the error helpers |
+| `src/graphql/` | the GraphQL module's options and the WebSocket checks (`graphql.config.ts`), the request-scoped DataLoaders (`loaders.ts`, `loaders.module.ts`), and the error helpers |
 | `src/posts/` | the post and comment models, inputs, resolvers, `PostsService`, and `visibleTo()`, the rule for who sees a draft |
 | `src/users/` | the user model, its resolver (`me`, `email`, `posts`), and the users repository |
 | `src/auth/` | the sign-in mutations, the JWT provider, the refresh-token store, and the GraphQL throttler guard |
@@ -85,7 +84,7 @@ TEST_DATABASE_URL=postgres://postgres:blog@localhost:5432/blog_test TEST_PORT=30
 
 ## Stack
 
-[NestJS](https://nestjs.com) 12 on the Node adapter, [`@nestjs/graphql`](https://docs.nestjs.com/graphql/quick-start) with Apollo Server, `graphql-ws` and `graphql-query-complexity`, DataLoader, class-validator, [`@nestjs/authentication`](https://docs.nestjs.com/security/authentication), [`@nestjs/throttler`](https://docs.nestjs.com/security/rate-limiting), [`@nestjs/config`](https://docs.nestjs.com/application/configuration) with Zod, [Drizzle](https://docs.nestjs.com/data/drizzle) and PostgreSQL, [NestJS Observe](https://docs.nestjs.com/observability/overview), and Vitest.
+[NestJS](https://nestjs.com) 12 on the Node adapter, [`@nestjs/graphql`](https://docs.nestjs.com/graphql/quick-start) with Apollo Server, `graphql-ws`, DataLoader, class-validator, [`@nestjs/authentication`](https://docs.nestjs.com/security/authentication), [`@nestjs/throttler`](https://docs.nestjs.com/security/rate-limiting), [`@nestjs/config`](https://docs.nestjs.com/application/configuration) with Zod, [Drizzle](https://docs.nestjs.com/data/drizzle) and PostgreSQL, [NestJS Observe](https://docs.nestjs.com/observability/overview), and Vitest.
 
 ## Production
 

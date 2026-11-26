@@ -2,24 +2,16 @@ import type { IncomingMessage } from 'node:http';
 import type { ApolloDriverConfig } from '@nestjs/apollo';
 import { Injectable } from '@nestjs/common';
 import { WsAuthenticator } from '@nestjs/authentication';
-import { InjectDrizzle } from '@nestjs/drizzle';
-import { GraphQLSchemaHost, type GqlOptionsFactory } from '@nestjs/graphql';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { GraphQLError, getOperationAST, parse, validate } from 'graphql';
+import type { GqlOptionsFactory } from '@nestjs/graphql';
+import { GraphQLError, getOperationAST, parse } from 'graphql';
 import type { Context, SubscribePayload } from 'graphql-ws';
 import type { Extra } from 'graphql-ws/use/ws';
-import { Loaders } from './loaders.js';
-import { queryCostError } from './query-cost.js';
 
 type SocketContext = Context<Record<string, unknown> | undefined, Extra>;
 
 @Injectable()
 export class GraphqlConfig implements GqlOptionsFactory<ApolloDriverConfig> {
-  constructor(
-    @InjectDrizzle() private readonly db: NodePgDatabase,
-    private readonly wsAuthenticator: WsAuthenticator,
-    private readonly schemaHost: GraphQLSchemaHost,
-  ) {}
+  constructor(private readonly wsAuthenticator: WsAuthenticator) {}
 
   createGqlOptions(): ApolloDriverConfig {
     const production = process.env.NODE_ENV === 'production';
@@ -36,7 +28,6 @@ export class GraphqlConfig implements GqlOptionsFactory<ApolloDriverConfig> {
       context: ({ req, res, extra }: { req?: IncomingMessage; res?: unknown; extra?: Extra }) => ({
         req: req ?? extra?.request,
         res,
-        loaders: new Loaders(this.db),
       }),
       fieldResolverEnhancers: ['guards', 'interceptors', 'filters'],
       formatError: (error) =>
@@ -58,23 +49,20 @@ export class GraphqlConfig implements GqlOptionsFactory<ApolloDriverConfig> {
     return result !== null;
   }
 
-  /** graphql-ws runs operations outside Apollo Server and its plugins: the socket gets its own checks. */
-  private checkSocketOperation({ query, variables, operationName }: SubscribePayload) {
-    const { schema } = this.schemaHost;
+  /**
+   * graphql-ws runs operations outside Apollo Server: its `introspection` setting and its
+   * plugins don't apply. The socket serves subscriptions only; queries and mutations go over HTTP.
+   */
+  private checkSocketOperation({ query, operationName }: SubscribePayload) {
     let document;
     try {
       document = parse(query);
     } catch (error) {
       return [error as GraphQLError];
     }
-    const errors = validate(schema, document);
-    if (errors.length > 0) {
-      return errors;
-    }
     if (getOperationAST(document, operationName)?.operation !== 'subscription') {
       return [new GraphQLError('Only subscriptions are served over WebSocket: send queries and mutations over HTTP')];
     }
-    const costError = queryCostError(schema, document, variables ?? undefined, operationName);
-    return costError ? [costError] : undefined;
+    return undefined;
   }
 }
