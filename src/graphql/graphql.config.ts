@@ -50,8 +50,8 @@ export class GraphqlConfig implements GqlOptionsFactory<ApolloDriverConfig> {
   }
 
   /**
-   * graphql-ws runs operations outside Apollo Server: its `introspection` setting and its
-   * plugins don't apply. The socket serves subscriptions only; queries and mutations go over HTTP.
+   * graphql-ws runs operations outside Apollo Server, whose plugins don't apply to them.
+   * The socket serves subscriptions only; queries and mutations go over HTTP.
    */
   private checkSocketOperation({ query, operationName }: SubscribePayload) {
     let document;
