@@ -1,7 +1,8 @@
 import { Authenticate, CurrentUser } from '@nestjs/authentication';
 import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { Loaders } from '../graphql/loaders.js';
 import { User } from '../users/user.model.js';
+import { UsersLoader } from '../users/users.loader.js';
+import { CommentsLoader } from './comments.loader.js';
 import { Comment } from './comment.model.js';
 import { Post, PostConnection } from './post.model.js';
 import { CreatePostInput, FirstArgs, PostArgs, PostsArgs, UpdatePostInput } from './posts.inputs.js';
@@ -13,7 +14,8 @@ import { PostsService } from './posts.service.js';
 export class PostsResolver {
   constructor(
     private readonly postsService: PostsService,
-    private readonly loaders: Loaders,
+    private readonly usersLoader: UsersLoader,
+    private readonly commentsLoader: CommentsLoader,
   ) {}
 
   @Query(() => PostConnection)
@@ -28,12 +30,12 @@ export class PostsResolver {
 
   @ResolveField(() => User)
   author(@Parent() post: Post) {
-    return this.loaders.user(post.authorId);
+    return this.usersLoader.load(post.authorId);
   }
 
   @ResolveField(() => [Comment])
   comments(@Parent() post: Post, @Args() { first }: FirstArgs) {
-    return this.loaders.comments(post.id, first);
+    return this.commentsLoader.load(post.id, first);
   }
 
   @Authenticate({ optional: false })

@@ -50,7 +50,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('Blog API (e2e)', () => {
   it('batches nested fields: the number of SQL queries stays flat as the posts grow', async () => {
     const queriesFor = async () => {
       const before = t.sqlCount();
-      const { data } = await gql(t.app, '{ posts(first: 50) { edges { node { author { name } comments(first: 5) { author { name } } } } } }');
+      const query = '{ posts(first: 50) { edges { node { author { name posts(first: 2) { id } } comments(first: 5) { author { name } } } } } }';
+      const { data } = await gql(t.app, query);
       return { posts: data.posts.edges.length, queries: t.sqlCount() - before };
     };
     const addPosts = async (count: number) => {
@@ -69,8 +70,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('Blog API (e2e)', () => {
 
     expect(many.posts).toBe(few.posts + 20);
     expect(many.queries).toBe(few.queries);
-    // At most the posts, their authors, their comments and the comments' authors.
-    expect(many.queries).toBeLessThanOrEqual(4);
+    // At most the posts, their authors, the authors' posts, the comments and their authors.
+    expect(many.queries).toBeLessThanOrEqual(5);
   });
 
   it('refuses a WebSocket without a valid token, before any operation', async () => {

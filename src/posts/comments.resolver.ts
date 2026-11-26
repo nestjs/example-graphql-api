@@ -3,21 +3,21 @@ import { Authenticate, CurrentUser } from '@nestjs/authentication';
 import { Args, Mutation, Parent, ResolveField, Resolver, Subscription } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { notFound } from '../graphql/errors.js';
-import { Loaders } from '../graphql/loaders.js';
 import { User } from '../users/user.model.js';
+import { UsersLoader } from '../users/users.loader.js';
 import { Comment } from './comment.model.js';
 import { AddCommentInput, CommentAddedArgs } from './posts.inputs.js';
 import { PostsService, PUB_SUB, commentAddedTopic } from './posts.service.js';
 
-// Request-scoped, since it injects Loaders.
+// Request-scoped, since it injects UsersLoader.
 @Authenticate({ optional: true })
 @Resolver(() => Comment)
 export class CommentAuthorResolver {
-  constructor(private readonly loaders: Loaders) {}
+  constructor(private readonly usersLoader: UsersLoader) {}
 
   @ResolveField(() => User)
   author(@Parent() comment: Comment) {
-    return this.loaders.user(comment.authorId);
+    return this.usersLoader.load(comment.authorId);
   }
 }
 

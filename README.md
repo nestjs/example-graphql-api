@@ -65,7 +65,7 @@ All operations go to `POST /graphql`; `commentAdded` goes over `graphql-ws` on `
 | `src/app.module.ts` | NestJS Observe, config, database, authentication, GraphQL, rate limits, the validation pipe, error filter |
 | `src/config.ts` | the environment, as a Zod schema checked at startup |
 | `src/database/` | the Drizzle tables (`schema.ts`) and the development seed (`seed.ts`) |
-| `src/graphql/` | the GraphQL module's options and the WebSocket checks (`graphql.config.ts`), the request-scoped DataLoaders (`loaders.ts`, `loaders.module.ts`), and the error helpers |
+| `src/graphql/` | the GraphQL module's options and the WebSocket checks (`graphql.config.ts`), and the error helpers. Each table's request-scoped DataLoader sits in its feature folder: `users/users.loader.ts`, `posts/posts.loader.ts`, `posts/comments.loader.ts` |
 | `src/posts/` | the post and comment models, inputs, resolvers, `PostsService`, and `visibleTo()`, the rule for who sees a draft |
 | `src/users/` | the user model, its resolver (`me`, `email`, `posts`), and the users repository |
 | `src/auth/` | the sign-in mutations, the JWT provider, the refresh-token store, and the GraphQL throttler guard |
